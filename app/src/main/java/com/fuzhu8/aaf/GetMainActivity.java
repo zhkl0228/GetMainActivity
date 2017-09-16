@@ -62,7 +62,7 @@ public class GetMainActivity {
             }
             PackageInfo packageInfo = (PackageInfo) getPackageInfo.invoke(pm, values);
             if (packageInfo == null) {
-                throw new IllegalStateException("find packageInfo failed for: " + packageName);
+                throw new PackageManager.NameNotFoundException("find package failed: " + packageName);
             }
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
