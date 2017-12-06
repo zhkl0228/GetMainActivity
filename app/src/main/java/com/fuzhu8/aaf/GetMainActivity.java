@@ -3,13 +3,15 @@ package com.fuzhu8.aaf;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.AssetManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,14 +31,13 @@ public class GetMainActivity {
             }
             final String packageName = args[0];
 
-            com.fuzhu8.aaf.PackageManager packageManager = PackageManagerFactory.createPackageManager();
-
-            PackageInfo packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
+            PackageManager packageManager = PackageManagerFactory.createPackageManager();
+            PackageInfo packageInfo = packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.GET_ACTIVITIES);
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             intent.setPackage(packageName);
-            List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(intent, PackageManager.GET_ACTIVITIES);
+            List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.GET_ACTIVITIES);
             Set<String> main = new HashSet<>(1);
             for (ResolveInfo resolveInfo : resolveInfos) {
                 main.add(resolveInfo.activityInfo.name);
@@ -49,15 +50,49 @@ public class GetMainActivity {
                 }
             }
 
+            Constructor<AssetManager> constructor = AssetManager.class.getConstructor();
+            constructor.setAccessible(true);
+            AssetManager assetManager = constructor.newInstance();
+            Method addAssetPath = null;
+            Method getResourceText = null;
+            Method ensureStringBlocks = null;
+            for (Method method : AssetManager.class.getDeclaredMethods()) {
+                if ("addAssetPath".equals(method.getName())) {
+                    addAssetPath = method;
+                    method.setAccessible(true);
+                } else if ("getResourceText".equals(method.getName())) {
+                    getResourceText = method;
+                    method.setAccessible(true);
+                } else if ("ensureStringBlocks".equals(method.getName())) {
+                    ensureStringBlocks = method;
+                    method.setAccessible(true);
+                }
+                if (addAssetPath != null && getResourceText != null && ensureStringBlocks != null) {
+                    break;
+                }
+            }
+
             JSONObject object = new JSONObject();
             object.put("code", 0);
             object.put("main", new JSONArray(main));
             object.put("activities", new JSONArray(activities));
 
+            try {
+                if (addAssetPath != null && getResourceText != null && ensureStringBlocks != null &&
+                        (int) addAssetPath.invoke(assetManager, packageInfo.applicationInfo.publicSourceDir) != 0) {
+                    ensureStringBlocks.invoke(assetManager);
+                    CharSequence label = (CharSequence) getResourceText.invoke(assetManager, packageInfo.applicationInfo.labelRes);
+                    if (label != null) {
+                        object.put("label", label.toString());
+                    }
+                }
+            } catch(Throwable ignored) {}
+
             System.out.println(object.toString());
         } catch(RuntimeException e) {
             throw e;
         } catch (Exception e) {
+            // e.printStackTrace();
             System.err.println(json(3, "Error: " + e.getMessage()));
         }
     }

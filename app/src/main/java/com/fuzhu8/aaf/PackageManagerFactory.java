@@ -28,7 +28,8 @@ class PackageManagerFactory {
                 getPackageInfo = method;
             } else if ("queryIntentActivities".equals(method.getName())) {
                 queryIntentActivities = method;
-            } else if (getPackageInfo != null && queryIntentActivities != null) {
+            }
+            if (getPackageInfo != null && queryIntentActivities != null) {
                 break;
             }
         }
