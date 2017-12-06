@@ -2,18 +2,14 @@ package com.fuzhu8.aaf;
 
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.pm.IPackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.os.IBinder;
-import android.os.ServiceManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,52 +29,16 @@ public class GetMainActivity {
             }
             final String packageName = args[0];
 
-            Class<?> IPackageManager$Stub = Class.forName("android.content.pm.IPackageManager$Stub");
-            Method asInterface = IPackageManager$Stub.getDeclaredMethod("asInterface", IBinder.class);
-            IPackageManager pm = (IPackageManager) asInterface.invoke(null, ServiceManager.getService("package"));
-            Method getPackageInfo = null;
-            Method queryIntentActivities = null;
-            for (Method method : IPackageManager.class.getDeclaredMethods()) {
-                if ("getPackageInfo".equals(method.getName())) {
-                    getPackageInfo = method;
-                } else if ("queryIntentActivities".equals(method.getName())) {
-                    queryIntentActivities = method;
-                } else if (getPackageInfo != null && queryIntentActivities != null) {
-                    break;
-                }
-            }
-            if (getPackageInfo == null) {
-                throw new IllegalStateException("find method getPackageInfo from class android.content.pm.IPackageManager failed.");
-            }
-            if (queryIntentActivities == null) {
-                throw new IllegalStateException("find method queryIntentActivities from class android.content.pm.IPackageManager failed.");
-            }
+            com.fuzhu8.aaf.PackageManager packageManager = PackageManagerFactory.createPackageManager();
 
-            Object[] values = new Object[getPackageInfo.getParameterTypes().length];
-            values[0] = packageName;
-            values[1] = PackageManager.GET_ACTIVITIES;
-            if (values.length > 2) {
-                values[2] = 0;
-            }
-            PackageInfo packageInfo = (PackageInfo) getPackageInfo.invoke(pm, values);
-            if (packageInfo == null) {
-                throw new PackageManager.NameNotFoundException("find package failed: " + packageName);
-            }
+            PackageInfo packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             intent.setPackage(packageName);
-            values = new Object[queryIntentActivities.getParameterTypes().length];
-            values[0] = intent;
-            values[1] = null;
-            values[2] = PackageManager.GET_ACTIVITIES;
-            if (values.length > 3) {
-                values[3] = 0;
-            }
-            List<?> resolveInfos = (List<?>) queryIntentActivities.invoke(pm, values);
+            List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(intent, PackageManager.GET_ACTIVITIES);
             Set<String> main = new HashSet<>(1);
-            for (Object obj : resolveInfos) {
-                ResolveInfo resolveInfo = (ResolveInfo) obj;
+            for (ResolveInfo resolveInfo : resolveInfos) {
                 main.add(resolveInfo.activityInfo.name);
             }
 
