@@ -1,6 +1,7 @@
 package com.fuzhu8.aaf;
 
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.ResolveInfo;
 
@@ -16,5 +17,7 @@ public interface PackageManager {
     PackageInfo getPackageInfo(String packageName, int flags) throws android.content.pm.PackageManager.NameNotFoundException;
 
     List<ResolveInfo> queryIntentActivities(Intent intent, int flags);
+
+    String loadLabel(ApplicationInfo applicationInfo);
 
 }

@@ -1,10 +1,13 @@
 package com.fuzhu8.aaf;
 
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.ResolveInfo;
+import android.content.res.AssetManager;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,8 +18,48 @@ import java.util.List;
  * Created by zhkl0228 on 2017/12/6.
  */
 class PackageManagerImpl extends AbstractPackageManager implements PackageManager {
+
     PackageManagerImpl(IPackageManager pm, Method getPackageInfo, Method queryIntentActivities) {
         super(pm, getPackageInfo, queryIntentActivities);
+    }
+
+    @Override
+    public String loadLabel(ApplicationInfo applicationInfo) {
+        try {
+            Constructor<AssetManager> constructor = AssetManager.class.getConstructor();
+            constructor.setAccessible(true);
+            AssetManager assetManager = constructor.newInstance();
+            Method addAssetPath = null;
+            Method getResourceText = null;
+            Method ensureStringBlocks = null;
+            for (Method method : AssetManager.class.getDeclaredMethods()) {
+                if ("addAssetPath".equals(method.getName())) {
+                    addAssetPath = method;
+                    method.setAccessible(true);
+                } else if ("getResourceText".equals(method.getName())) {
+                    getResourceText = method;
+                    method.setAccessible(true);
+                } else if ("ensureStringBlocks".equals(method.getName())) {
+                    ensureStringBlocks = method;
+                    method.setAccessible(true);
+                }
+                if (addAssetPath != null && getResourceText != null && ensureStringBlocks != null) {
+                    break;
+                }
+            }
+
+            if (addAssetPath != null && getResourceText != null && ensureStringBlocks != null &&
+                    (int) addAssetPath.invoke(assetManager, applicationInfo.publicSourceDir) != 0) {
+                ensureStringBlocks.invoke(assetManager);
+                CharSequence label = (CharSequence) getResourceText.invoke(assetManager, applicationInfo.labelRes);
+                if (label != null) {
+                    return label.toString();
+                }
+            }
+            return null;
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     @Override
