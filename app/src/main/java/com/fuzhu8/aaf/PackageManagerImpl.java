@@ -6,6 +6,7 @@ import android.content.pm.IPackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.os.Build;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -93,7 +94,15 @@ class PackageManagerImpl extends AbstractPackageManager implements PackageManage
             if (values.length > 3) {
                 values[3] = 0;
             }
-            List<?> resolveInfos = (List<?>) queryIntentActivities.invoke(pm, values);
+            List<?> resolveInfos = null;
+            if (Build.VERSION.SDK_INT >= 24) {
+                Object parceledListSlice = queryIntentActivities.invoke(pm, values);
+                Class clazz = parceledListSlice.getClass();
+                Method getList = clazz.getMethod("getList");
+                resolveInfos = (List<?>) getList.invoke(parceledListSlice);
+            } else {
+                resolveInfos = (List<?>) queryIntentActivities.invoke(pm, values);
+            }
             List<ResolveInfo> list = new ArrayList<>(resolveInfos.size());
             for (Object obj : resolveInfos) {
                 list.add((ResolveInfo) obj);
@@ -103,6 +112,9 @@ class PackageManagerImpl extends AbstractPackageManager implements PackageManage
             throw new IllegalStateException(e);
         } catch (InvocationTargetException e) {
             throw new IllegalStateException(e);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
         }
+        return null;
     }
 }

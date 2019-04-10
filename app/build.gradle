@@ -2,10 +2,9 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion "26.0.0"
     defaultConfig {
         applicationId "com.fuzhu8.aaf"
-        minSdkVersion 15
+        minSdkVersion 19
         targetSdkVersion 26
         versionCode 100
         versionName "1.0.0"
@@ -19,5 +18,5 @@ android {
 }
 
 dependencies {
-    provided 'android:full_framework:15'
+    //compileOnly 'android:full_framework:15'
 }
