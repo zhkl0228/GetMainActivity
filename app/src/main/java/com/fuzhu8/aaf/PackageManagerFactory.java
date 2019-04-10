@@ -3,7 +3,6 @@ package com.fuzhu8.aaf;
 import android.annotation.SuppressLint;
 import android.content.pm.IPackageManager;
 import android.os.IBinder;
-import android.os.ServiceManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -19,7 +18,7 @@ class PackageManagerFactory {
     static PackageManager createPackageManager() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Class<?> IPackageManager$Stub = Class.forName("android.content.pm.IPackageManager$Stub");
         Method asInterface = IPackageManager$Stub.getDeclaredMethod("asInterface", IBinder.class);
-        IPackageManager pm = (IPackageManager) asInterface.invoke(null, ServiceManager.getService("package"));
+        IPackageManager pm = (IPackageManager) asInterface.invoke(null, getService("package"));
 
         Method getPackageInfo = null;
         Method queryIntentActivities = null;
@@ -43,4 +42,22 @@ class PackageManagerFactory {
         return new PackageManagerImpl(pm, getPackageInfo, queryIntentActivities);
     }
 
+    @SuppressLint("PrivateApi")
+    static IBinder getService(String name) {
+        try {
+            Class<?> ServiceManager = Class.forName("android.os.ServiceManager");
+            Method getServer = ServiceManager.getDeclaredMethod("getService", String.class);
+            IBinder binder = (IBinder) getServer.invoke(null, name);
+            return binder;
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
